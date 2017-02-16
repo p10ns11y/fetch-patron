@@ -14,7 +14,8 @@ bear keeping in mind:
 
 * By default, `fetch` **won't send or receive any cookies** from the server,
   resulting in unauthenticated requests if the site relies on maintaining a user
-  session. 
+  session. See [Sending cookies](#sending-cookies) for how to opt into cookie
+  handling.
 
 #### Handling HTTP error statuses
 
@@ -46,7 +47,46 @@ fetch('/users')
   })
 ```
 
-### Missing piece
+#### Sending cookies
+
+To automatically send cookies for the current domain, the `credentials` option
+must be provided:
+
+```javascript
+fetch('/users', {
+  credentials: 'same-origin'
+})
+```
+
+The "same-origin" value makes `fetch` behave similarly to XMLHttpRequest with
+regards to cookies. Otherwise, cookies won't get sent, resulting in these
+requests not preserving the authentication session.
+
+For [CORS][] requests, use the "include" value to allow sending credentials to
+other domains:
+
+```javascript
+fetch('https://example.com:1234/users', {
+  credentials: 'include'
+})
+```
+
+#### Receiving cookies
+
+Like with XMLHttpRequest, the `Set-Cookie` response header returned from the
+server is a [forbidden header name][] and therefore can't be programatically
+read with `response.headers.get()`. Instead, it's the browser's responsibility
+to handle new cookies being set (if applicable to the current URL). Unless they
+are HTTP-only, new cookies will be available through `document.cookie`.
+
+Bear in mind that the default behavior of `fetch` is to ignore the `Set-Cookie`
+header completely. To opt into accepting cookies from the server, you must use
+the `credentials` option.
+
+Checkout http://github.github.io/fetch/ for the polyfill
+
+# The Missing piece
+
 However it is bit unclear how to handle the custom json(or text) error messages
 which are not overriding the http header [`Reason-Phrases`](https://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1.1) instead send as body content
 
@@ -56,4 +96,10 @@ For example assume express server send the following
 Now you want the `checkStatus` would like to throw you all the original response
 including error code, and json response which could be resolved only by `.json()` promise.
 
+
 Is it possible? Yes check the source !
+
+# Additional references
+- https://github.com/expressjs/express/issues/3168
+- https://runkit.com/peramanathan/server-test-fetch-ajax/1.0.1
+
